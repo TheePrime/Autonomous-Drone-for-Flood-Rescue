@@ -40,6 +40,10 @@ function formatCoordinate(group) {
     return "-";
   }
 
+  if (group.latitude !== undefined && group.longitude !== undefined) {
+    return `lat: ${group.latitude} | lon: ${group.longitude}`;
+  }
+
   const values = Object.entries(group)
     .map(([key, value]) => `${key}: ${value}`)
     .join(" | ");

@@ -8,6 +8,12 @@ from pathlib import Path
 from typing import Any
 
 
+GPS_ORIGIN_LATITUDE = 37.7749
+GPS_ORIGIN_LONGITUDE = -122.4194
+METERS_PER_DEGREE_LATITUDE = 111_111.0
+
+
+
 def project_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
@@ -51,24 +57,35 @@ def simulate_dummy_coordinates(
     center_x = (left + right) / 2.0
     center_y = (top + bottom) / 2.0
 
-    drone_x = round(frame_index * 0.8, 2)
-    drone_y = round(math.sin(frame_index / 12.0) * 4.0, 2)
-    drone_altitude = round(30.0 + math.cos(frame_index / 15.0) * 2.0, 2)
+    drone_north_m = math.sin(frame_index / 18.0) * 28.0 + frame_index * 0.35
+    drone_east_m = math.cos(frame_index / 22.0) * 18.0
+    drone_altitude_m = round(30.0 + math.cos(frame_index / 15.0) * 2.0, 2)
 
-    human_x = round((center_x / max(frame_width, 1) - 0.5) * 100.0, 2)
-    human_y = round((center_y / max(frame_height, 1) - 0.5) * 100.0, 2)
+    human_east_m = (center_x / max(frame_width, 1) - 0.5) * 40.0
+    human_north_m = (0.5 - center_y / max(frame_height, 1)) * 40.0
+
+    drone_latitude = GPS_ORIGIN_LATITUDE + drone_north_m / METERS_PER_DEGREE_LATITUDE
+    drone_longitude = GPS_ORIGIN_LONGITUDE + drone_east_m / (
+        METERS_PER_DEGREE_LATITUDE * math.cos(math.radians(GPS_ORIGIN_LATITUDE))
+    )
+
+    human_latitude = drone_latitude + human_north_m / METERS_PER_DEGREE_LATITUDE
+    human_longitude = drone_longitude + human_east_m / (
+        METERS_PER_DEGREE_LATITUDE * math.cos(math.radians(drone_latitude))
+    )
 
     return {
         "frame": frame_index,
         "drone_position": {
-            "x_m": drone_x,
-            "y_m": drone_y,
-            "z_m": drone_altitude,
+            "latitude": round(drone_latitude, 6),
+            "longitude": round(drone_longitude, 6),
+            "altitude_m": drone_altitude_m,
         },
         "human_position": {
-            "x_m": human_x,
-            "y_m": human_y,
+            "latitude": round(human_latitude, 6),
+            "longitude": round(human_longitude, 6),
         },
+        "coordinate_system": "gps-estimated",
     }
 
 
