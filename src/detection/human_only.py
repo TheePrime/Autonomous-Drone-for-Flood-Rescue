@@ -1,8 +1,9 @@
 import cv2
-import json
 import os
 from datetime import datetime
 from ultralytics import YOLO
+
+from detection_utils import DetectionDeduplicator, append_detection_log, build_detection_record, detections_dir
 
 # Load trained model
 model = YOLO("runs/detect/train/weights/best.pt")
@@ -15,6 +16,8 @@ cap = cv2.VideoCapture(video_path)
 
 # Create detections folder
 os.makedirs("detections", exist_ok=True)
+deduplicator = DetectionDeduplicator()
+frame_index = 0
 
 while True:
 
@@ -23,11 +26,14 @@ while True:
     if not ret:
         break
 
+    frame_index += 1
+
     # Run detection
     results = model(frame)
 
     # Copy frame for annotations
     annotated_frame = frame.copy()
+    frame_height, frame_width = frame.shape[:2]
 
     for r in results:
         for box in r.boxes:
@@ -35,10 +41,11 @@ while True:
             cls = int(box.cls[0])
             conf = float(box.conf[0])
 
-            # Human classes only
-            if cls in [0, 1] and conf > 0.5:
+            # Human class only
+            if cls == 0 and conf > 0.5:
 
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
+                bbox = (x1, y1, x2, y2)
 
                 # Draw bounding box
                 cv2.rectangle(
@@ -61,29 +68,26 @@ while True:
                     2
                 )
 
-                # Timestamp
-                timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                if deduplicator.is_new(bbox):
+                    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                    image_name = detections_dir() / f"human_only_{timestamp}_{frame_index:06d}.jpg"
 
-                # Save detection image
-                image_name = f"detections/{timestamp}.jpg"
+                    cv2.imwrite(str(image_name), annotated_frame)
 
-                cv2.imwrite(image_name, annotated_frame)
+                    detection_data = build_detection_record(
+                        frame_index=frame_index,
+                        confidence=conf,
+                        bbox=bbox,
+                        frame_width=frame_width,
+                        frame_height=frame_height,
+                        image_path=image_name,
+                    )
 
-                # Detection log data
-                detection_data = {
-                    "time": timestamp,
-                    "confidence": round(conf, 2),
-                    "bbox": [x1, y1, x2, y2],
-                    "image": image_name
-                }
+                    # Print detection
+                    print(detection_data)
 
-                # Print detection
-                print(detection_data)
-
-                # Save log
-                with open("detections.json", "a") as f:
-                    json.dump(detection_data, f)
-                    f.write("\n")
+                    # Save log
+                    append_detection_log(detection_data)
 
     # Show output
     cv2.imshow("UAV Human Detection", annotated_frame)

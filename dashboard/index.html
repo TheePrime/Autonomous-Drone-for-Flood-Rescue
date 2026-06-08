@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drone Detection Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Autonomous Drone Human Detection</p>
+        <h1>Detection Dashboard</h1>
+        <p class="subtle">Live detections, bounding boxes, and simulated drone coordinates pulled from detections.json.</p>
+      </div>
+      <label class="file-chip">
+        <input id="fileInput" type="file" accept="application/json,.json">
+        Load detections.json
+      </label>
+    </header>
+
+    <section class="stats" id="stats">
+      <article>
+        <span>Total Detections</span>
+        <strong id="totalDetections">0</strong>
+      </article>
+      <article>
+        <span>Latest Confidence</span>
+        <strong id="latestConfidence">0.00</strong>
+      </article>
+      <article>
+        <span>Last Frame</span>
+        <strong id="latestFrame">-</strong>
+      </article>
+      <article>
+        <span>Drone Position</span>
+        <strong id="latestDrone">-</strong>
+      </article>
+    </section>
+
+    <section class="panel grid">
+      <div class="card preview-card">
+        <div class="card-header">
+          <h2>Latest Detection</h2>
+          <span id="lastUpdated">Waiting for data...</span>
+        </div>
+        <img id="latestImage" alt="Latest detection screenshot" src="" />
+        <div class="details" id="latestDetails">
+          <p>No detections loaded yet.</p>
+        </div>
+      </div>
+
+      <div class="card table-card">
+        <div class="card-header">
+          <h2>Detection Log</h2>
+          <span id="logCount">0 rows</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Frame</th>
+                <th>Confidence</th>
+                <th>BBox</th>
+                <th>Drone</th>
+                <th>Human</th>
+              </tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
