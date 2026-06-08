@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Detection Viewer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Detection Viewer</p>
+        <h1>Screenshot Details</h1>
+        <p class="subtle" id="subtitle">Loading...</p>
+      </div>
+      <div class="hero-actions">
+        <a id="openRaw" href="#" target="_blank">Open raw image</a>
+      </div>
+    </header>
+
+    <section class="panel layout-shell">
+      <div class="main-stack">
+        <div class="card preview-card">
+          <img id="viewImage" alt="Detection screenshot" src="" />
+        </div>
+
+        <div class="card table-card">
+          <div class="card-header">
+            <h2>Details</h2>
+          </div>
+          <div class="details" id="details">
+            <p>Loading detection details...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="viewer.js"></script>
+</body>
+</html>

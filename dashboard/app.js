@@ -130,7 +130,8 @@ function renderDetections(detections) {
   const latest = filteredDetections.length ? filteredDetections[filteredDetections.length - 1] : detections[detections.length - 1];
   elements.latestConfidence.textContent = Number(latest.confidence).toFixed(2);
   elements.latestFrame.textContent = latest.frame ?? "-";
-  elements.latestDrone.textContent = formatCoordinate(latest.drone_position);
+  // Prefer metric position if available
+  elements.latestDrone.textContent = formatCoordinate(latest.drone_position_m || latest.drone_position);
   elements.latestDetails.innerHTML = `
     <p><span class="pill">Time</span> ${latest.time ?? "-"}</p>
     <p><span class="pill">BBox</span> ${formatBox(latest.bbox ?? [])}</p>
@@ -151,7 +152,7 @@ function renderDetections(detections) {
     .map(
       (entry) => `
         <figure class="shot-card">
-          <a href="${resolveImageSrc(entry.image)}" target="_blank" rel="noreferrer">
+          <a href="viewer.html?img=${encodeURIComponent((entry.image || "").split(/[\\/]/).pop())}" target="_blank" rel="noreferrer">
             <img src="${resolveImageSrc(entry.image)}" alt="Detection screenshot">
           </a>
           <figcaption>
@@ -173,8 +174,8 @@ function renderDetections(detections) {
           <td>${entry.frame ?? "-"}</td>
           <td>${Number(entry.confidence ?? 0).toFixed(2)}</td>
           <td>${formatBox(entry.bbox ?? [])}</td>
-          <td>${formatCoordinate(entry.drone_position)}</td>
-          <td>${formatCoordinate(entry.human_position)}</td>
+          <td>${formatCoordinate(entry.drone_position_m || entry.drone_position)}</td>
+          <td>${formatCoordinate(entry.human_position_m || entry.human_position)}</td>
         </tr>
       `,
     )

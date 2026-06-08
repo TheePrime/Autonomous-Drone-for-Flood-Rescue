@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+import cv2
+import numpy as np
 
 
 GPS_ORIGIN_LATITUDE = 37.7749
@@ -85,7 +87,16 @@ def simulate_dummy_coordinates(
             "latitude": round(human_latitude, 6),
             "longitude": round(human_longitude, 6),
         },
-        "coordinate_system": "gps-estimated",
+        "drone_position_m": {
+            "north_m": round(drone_north_m, 2),
+            "east_m": round(drone_east_m, 2),
+            "altitude_m": round(drone_altitude_m, 2),
+        },
+        "human_position_m": {
+            "north_m": round(human_north_m, 2),
+            "east_m": round(human_east_m, 2),
+        },
+        "coordinate_system": "gps-estimated+metric",
     }
 
 
@@ -124,6 +135,74 @@ def append_detection_log(record: dict[str, Any]) -> None:
     with detections_log_path().open("a", encoding="utf-8") as file_handle:
         json.dump(record, file_handle)
         file_handle.write("\n")
+
+
+def overlay_detection_text(frame: "np.ndarray", record: dict[str, Any]) -> "np.ndarray":
+    """Draws detection metadata (time, confidence, GPS coords, bbox) onto the image.
+
+    Returns the modified frame.
+    """
+    if frame is None:
+        return frame
+
+    h, w = frame.shape[:2]
+    pad = 8
+    line_height = 18
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    scale = 0.5
+    thickness = 1
+
+    lines = []
+    if record.get("time"):
+        lines.append(f"Time: {record['time']}")
+    lines.append(f"Conf: {record.get('confidence', 0):.2f}")
+
+    dp = record.get("drone_position") or {}
+    hp = record.get("human_position") or {}
+
+    # Prefer metric fields for overlay (useful for live/webcam runs)
+    dp_m = record.get("drone_position_m") or {}
+    hp_m = record.get("human_position_m") or {}
+
+    if dp_m.get("north_m") is not None and dp_m.get("east_m") is not None:
+        lines.append(f"Drone (m): N={dp_m.get('north_m')} E={dp_m.get('east_m')} Alt={dp_m.get('altitude_m', '-')}")
+    elif dp.get("latitude") is not None and dp.get("longitude") is not None:
+        lines.append(f"Drone: {dp.get('latitude')}, {dp.get('longitude')} (alt {dp.get('altitude_m', '-')})")
+    else:
+        lines.append(f"Drone: {dp}")
+
+    if hp_m.get("north_m") is not None and hp_m.get("east_m") is not None:
+        lines.append(f"Human (m): N={hp_m.get('north_m')} E={hp_m.get('east_m')}")
+    elif hp.get("latitude") is not None and hp.get("longitude") is not None:
+        lines.append(f"Human: {hp.get('latitude')}, {hp.get('longitude')}")
+    else:
+        lines.append(f"Human: {hp}")
+
+    if record.get("bbox"):
+        bb = record["bbox"]
+        lines.append(f"BBox: [{', '.join(map(str, bb))}]")
+
+    # compute background rect size
+    widths = [cv2.getTextSize(l, font, scale, thickness)[0][0] for l in lines]
+    max_w = max(widths) if widths else 0
+    bg_w = max_w + pad * 2
+    bg_h = line_height * len(lines) + pad * 2
+
+    # bottom-left corner for the box
+    x = pad
+    y = h - bg_h - pad
+
+    # draw background
+    cv2.rectangle(frame, (x, y), (x + bg_w, y + bg_h), (0, 0, 0), cv2.FILLED)
+    cv2.rectangle(frame, (x, y), (x + bg_w, y + bg_h), (255, 255, 255), 1)
+
+    # draw text lines
+    ty = y + pad + line_height - 4
+    for line in lines:
+        cv2.putText(frame, line, (x + pad, ty), font, scale, (255, 255, 255), thickness, cv2.LINE_AA)
+        ty += line_height
+
+    return frame
 
 
 @dataclass

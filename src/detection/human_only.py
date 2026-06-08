@@ -3,10 +3,18 @@ import os
 from datetime import datetime
 from ultralytics import YOLO
 
-from detection_utils import DetectionDeduplicator, append_detection_log, build_detection_record, detections_dir
+from detection_utils import DetectionDeduplicator, append_detection_log, build_detection_record, detections_dir, overlay_detection_text
 
-# Load trained model
-model = YOLO("runs/detect/train/weights/best.pt")
+# Load trained model (fallback to bundled yolov8n.pt if trained weights missing)
+model_path = os.path.join("runs", "detect", "train", "weights", "best.pt")
+if not os.path.exists(model_path):
+    alt = os.path.join("..", "..", "yolov8n.pt")
+    if os.path.exists(alt):
+        model_path = alt
+    else:
+        raise FileNotFoundError(f"Model weights not found at {model_path} or {alt}")
+
+model = YOLO(model_path)
 
 # Ask user for video path
 video_path = input("Enter video path: ")
@@ -72,8 +80,6 @@ while True:
                     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                     image_name = detections_dir() / f"human_only_{timestamp}_{frame_index:06d}.jpg"
 
-                    cv2.imwrite(str(image_name), annotated_frame)
-
                     detection_data = build_detection_record(
                         frame_index=frame_index,
                         confidence=conf,
@@ -82,6 +88,12 @@ while True:
                         frame_height=frame_height,
                         image_path=image_name,
                     )
+
+                    # Overlay coordinates/metadata on the annotated frame before saving
+                    overlay_detection_text(annotated_frame, detection_data)
+
+                    # Save image with overlay
+                    cv2.imwrite(str(image_name), annotated_frame)
 
                     # Print detection
                     print(detection_data)

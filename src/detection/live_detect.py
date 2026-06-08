@@ -1,7 +1,7 @@
 import cv2
 from ultralytics import YOLO
 
-from detection_utils import DetectionDeduplicator, append_detection_log, build_detection_record, detections_dir
+from detection_utils import DetectionDeduplicator, append_detection_log, build_detection_record, detections_dir, overlay_detection_text
 
 model = YOLO("yolov8n.pt")
 
@@ -49,7 +49,6 @@ while True:
 
                 if deduplicator.is_new(bbox):
                     image_name = detections_dir() / f"live_{frame_index:06d}_{x1}_{y1}_{x2}_{y2}.jpg"
-                    cv2.imwrite(str(image_name), annotated_frame)
 
                     detection_record = build_detection_record(
                         frame_index=frame_index,
@@ -59,6 +58,9 @@ while True:
                         frame_height=frame_height,
                         image_path=image_name,
                     )
+
+                    overlay_detection_text(annotated_frame, detection_record)
+                    cv2.imwrite(str(image_name), annotated_frame)
                     append_detection_log(detection_record)
 
     cv2.imshow("YOLO Detection", annotated_frame)
