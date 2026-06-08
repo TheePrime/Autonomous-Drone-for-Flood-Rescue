@@ -8,13 +8,20 @@ const elements = {
   latestImage: document.getElementById("latestImage"),
   latestDetails: document.getElementById("latestDetails"),
   lastUpdated: document.getElementById("lastUpdated"),
+  groupCount: document.getElementById("groupCount"),
+  galleryCount: document.getElementById("galleryCount"),
   logCount: document.getElementById("logCount"),
   logBody: document.getElementById("logBody"),
+  groupList: document.getElementById("groupList"),
+  gallery: document.getElementById("gallery"),
   fileInput: document.getElementById("fileInput"),
+  clearViewBtn: document.getElementById("clearViewBtn"),
 };
 
 let manualMode = false;
 let lastLoadedSignature = "";
+let activeDate = "all";
+let currentDetections = [];
 
 function parseDetections(text) {
   return text
@@ -40,6 +47,29 @@ function formatCoordinate(group) {
   return values || "-";
 }
 
+function getDateKey(entry) {
+  if (entry.date) {
+    return entry.date;
+  }
+
+  if (entry.time) {
+    return String(entry.time).slice(0, 10);
+  }
+
+  return "unknown";
+}
+
+function groupDetectionsByDate(detections) {
+  return detections.reduce((groups, entry) => {
+    const dateKey = getDateKey(entry);
+    if (!groups[dateKey]) {
+      groups[dateKey] = [];
+    }
+    groups[dateKey].push(entry);
+    return groups;
+  }, {});
+}
+
 function resolveImageSrc(imagePath) {
   if (!imagePath) {
     return "";
@@ -54,8 +84,29 @@ function resolveImageSrc(imagePath) {
 }
 
 function renderDetections(detections) {
+  currentDetections = detections;
   elements.totalDetections.textContent = detections.length.toString();
   elements.logCount.textContent = `${detections.length} rows`;
+
+  const grouped = groupDetectionsByDate(detections);
+  const dateKeys = Object.keys(grouped).sort().reverse();
+  elements.groupCount.textContent = `${dateKeys.length} groups`;
+
+  const filteredDetections = activeDate === "all"
+    ? detections
+    : detections.filter((entry) => getDateKey(entry) === activeDate);
+
+  elements.galleryCount.textContent = `${filteredDetections.filter((entry) => entry.image).length} images`;
+
+  elements.groupList.innerHTML = [
+    `<button class="group-chip ${activeDate === "all" ? "active" : ""}" data-date="all">All dates <span>${detections.length}</span></button>`,
+    ...dateKeys.map((dateKey) => `
+      <button class="group-chip ${activeDate === dateKey ? "active" : ""}" data-date="${dateKey}">
+        ${dateKey}
+        <span>${grouped[dateKey].length}</span>
+      </button>
+    `),
+  ].join("");
 
   if (!detections.length) {
     elements.latestConfidence.textContent = "0.00";
@@ -65,10 +116,14 @@ function renderDetections(detections) {
     elements.latestDetails.innerHTML = "<p>No detections loaded yet.</p>";
     elements.lastUpdated.textContent = "Waiting for data...";
     elements.logBody.innerHTML = "";
+    elements.groupList.innerHTML = "<p class='muted-copy'>No groups yet.</p>";
+    elements.gallery.innerHTML = "";
+    elements.groupCount.textContent = "0 groups";
+    elements.galleryCount.textContent = "0 images";
     return;
   }
 
-  const latest = detections[detections.length - 1];
+  const latest = filteredDetections.length ? filteredDetections[filteredDetections.length - 1] : detections[detections.length - 1];
   elements.latestConfidence.textContent = Number(latest.confidence).toFixed(2);
   elements.latestFrame.textContent = latest.frame ?? "-";
   elements.latestDrone.textContent = formatCoordinate(latest.drone_position);
@@ -84,7 +139,27 @@ function renderDetections(detections) {
     elements.latestImage.src = resolveImageSrc(latest.image);
   }
 
-  elements.logBody.innerHTML = detections
+  const galleryEntries = filteredDetections.filter((entry) => entry.image);
+
+  elements.gallery.innerHTML = galleryEntries
+    .slice()
+    .reverse()
+    .map(
+      (entry) => `
+        <figure class="shot-card">
+          <a href="${resolveImageSrc(entry.image)}" target="_blank" rel="noreferrer">
+            <img src="${resolveImageSrc(entry.image)}" alt="Detection screenshot">
+          </a>
+          <figcaption>
+            <strong>${entry.time ?? "-"}</strong>
+            <span>${Number(entry.confidence ?? 0).toFixed(2)} confidence</span>
+          </figcaption>
+        </figure>
+      `,
+    )
+    .join("");
+
+  elements.logBody.innerHTML = filteredDetections
     .slice()
     .reverse()
     .map(
@@ -100,6 +175,13 @@ function renderDetections(detections) {
       `,
     )
     .join("");
+
+  elements.groupList.querySelectorAll("[data-date]").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeDate = button.dataset.date || "all";
+      renderDetections(currentDetections);
+    });
+  });
 }
 
 function buildSignature(text) {
@@ -143,6 +225,11 @@ elements.fileInput.addEventListener("change", async (event) => {
   const text = await file.text();
   const detections = text ? parseDetections(text) : [];
   renderDetections(detections);
+});
+
+elements.clearViewBtn.addEventListener("click", () => {
+  activeDate = "all";
+  renderDetections(currentDetections);
 });
 
 loadDashboard();

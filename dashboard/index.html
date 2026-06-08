@@ -14,10 +14,13 @@
         <h1>Detection Dashboard</h1>
         <p class="subtle">Live detections, bounding boxes, and simulated drone coordinates pulled from detections.json.</p>
       </div>
-      <label class="file-chip">
-        <input id="fileInput" type="file" accept="application/json,.json">
-        Load detections.json
-      </label>
+      <div class="hero-actions">
+        <label class="file-chip">
+          <input id="fileInput" type="file" accept="application/json,.json">
+          Load detections.json
+        </label>
+        <button id="clearViewBtn" type="button">Clear view</button>
+      </div>
     </header>
 
     <section class="stats" id="stats">
@@ -39,37 +42,55 @@
       </article>
     </section>
 
-    <section class="panel grid">
-      <div class="card preview-card">
+    <section class="panel layout-shell">
+      <aside class="card sidebar-card">
         <div class="card-header">
-          <h2>Latest Detection</h2>
-          <span id="lastUpdated">Waiting for data...</span>
+          <h2>Dates</h2>
+          <span id="groupCount">0 groups</span>
         </div>
-        <img id="latestImage" alt="Latest detection screenshot" src="" />
-        <div class="details" id="latestDetails">
-          <p>No detections loaded yet.</p>
-        </div>
-      </div>
+        <div class="group-list" id="groupList"></div>
+      </aside>
 
-      <div class="card table-card">
-        <div class="card-header">
-          <h2>Detection Log</h2>
-          <span id="logCount">0 rows</span>
+      <div class="main-stack">
+        <div class="card preview-card">
+          <div class="card-header">
+            <h2>Latest Detection</h2>
+            <span id="lastUpdated">Waiting for data...</span>
+          </div>
+          <img id="latestImage" alt="Latest detection screenshot" src="" />
+          <div class="details" id="latestDetails">
+            <p>No detections loaded yet.</p>
+          </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Frame</th>
-                <th>Confidence</th>
-                <th>BBox</th>
-                <th>Drone</th>
-                <th>Human</th>
-              </tr>
-            </thead>
-            <tbody id="logBody"></tbody>
-          </table>
+
+        <div class="card gallery-card">
+          <div class="card-header">
+            <h2>Saved Screenshots</h2>
+            <span id="galleryCount">0 images</span>
+          </div>
+          <div class="gallery" id="gallery"></div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-header">
+            <h2>Detection Log</h2>
+            <span id="logCount">0 rows</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Frame</th>
+                  <th>Confidence</th>
+                  <th>BBox</th>
+                  <th>Drone</th>
+                  <th>Human</th>
+                </tr>
+              </thead>
+              <tbody id="logBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
